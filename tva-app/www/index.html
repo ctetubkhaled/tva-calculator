@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="manifest" href="manifest.webmanifest">
+    <meta name="theme-color" content="#0067c0">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="stylesheet" href="css/fonts.css">
+    <link rel="stylesheet" href="css/app.css">
+    <title>حاسبة الضريبة - Windows Style</title>
+
+    
+</head>
+<body class="bg-[#e5e9f0] dark:bg-[#121212] text-[#1a1a1a] dark:text-[#ffffff] min-h-screen flex items-center justify-center p-2 sm:p-4 transition-colors duration-200 selection:bg-[#0067c0] selection:text-white">
+
+    <!-- إشعار ويندوز مصغر (Toast) -->
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-all duration-200 transform translate-y-3">
+        <div class="bg-[#2c2c2c] dark:bg-[#383838] text-white px-4 py-2 rounded-lg shadow-xl border border-white/10 flex items-center gap-2 text-xs font-medium">
+            <span class="w-2 h-2 rounded-full bg-[#4cc2ff]"></span>
+            <span id="toastMessage">تم النسخ</span>
+        </div>
+    </div>
+
+    <!-- إطار نافذة تطبيق ويندوز 11 (Windows 11 App Window Frame) -->
+    <div class="w-full max-w-[420px] bg-[#f3f3f3] dark:bg-[#202020] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.65)] border border-black/10 dark:border-white/10 overflow-hidden flex flex-col relative">
+        
+        <!-- 1. شريط عنوان نافذة ويندوز (Title Bar) -->
+        <div class="h-9 px-3 flex items-center justify-between select-none bg-[#f3f3f3] dark:bg-[#202020]">
+            <!-- أيقونة واسم التطبيق -->
+            <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-[#0067c0] dark:text-[#4cc2ff]" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 16H6v-2h12v2zm0-4H6v-2h12v2zm0-4H6V5h12v6z"/>
+                </svg>
+                <span data-i18n="windowTitle" class="text-xs font-medium text-neutral-700 dark:text-neutral-300">حاسبة الضريبة</span>
+            </div>
+
+            <!-- أزرار التحكم بالنافذة (تصميم ويندوز 11) -->
+            <div class="flex items-center -me-3 h-full" dir="ltr">
+                <!-- زر التصغير -->
+                <button type="button" id="winMinBtn" tabindex="-1" class="w-11 h-full flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:bg-black/5 dark:hover:bg-white/10 transition">
+                    <svg class="w-2.5 h-2.5" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
+                </button>
+                <!-- زر التكبير -->
+                <button type="button" id="winMaxBtn" tabindex="-1" class="w-11 h-full flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:bg-black/5 dark:hover:bg-white/10 transition">
+                    <svg class="w-2.5 h-2.5" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1"><rect x="0.5" y="0.5" width="9" height="9"/></svg>
+                </button>
+                <!-- زر الإغلاق (يمسح الحقول) -->
+                <button type="button" id="winCloseBtn" data-i18n-title="clearAllTitle" title="مسح الكل" tabindex="-1" class="w-11 h-full flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:bg-[#c42b1c] hover:text-white transition">
+                    <svg class="w-2.5 h-2.5" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.1"><path d="M1 1l8 8M9 1L1 9"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. شريط أدوات الحاسبة الداخلي (Calculator Header) -->
+        <div class="px-3 py-1.5 flex items-center justify-between gap-2">
+            <!-- عنوان الوضع المحاسبي -->
+            <div class="flex items-center gap-2">
+                <div class="p-1.5 rounded-md text-neutral-700 dark:text-neutral-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10"/>
+                    </svg>
+                </div>
+                <span data-i18n="modeTitle" class="text-sm font-bold tracking-tight">محاسبة TVA</span>
+            </div>
+
+            <!-- أدوات اللغة + المظهر + السجل -->
+            <div class="flex items-center gap-1">
+                <!-- مبدل اللغات المدمج -->
+                <div class="flex items-center bg-black/[0.04] dark:bg-white/[0.06] rounded-md p-0.5 border border-black/[0.05] dark:border-white/[0.05]">
+                    <button type="button" data-lang="ar" class="lang-btn px-2 py-0.5 rounded text-[11px] font-bold transition bg-white dark:bg-[#323232] text-[#0067c0] dark:text-[#4cc2ff] shadow-sm">عربي</button>
+                    <button type="button" data-lang="fr" class="lang-btn px-2 py-0.5 rounded text-[11px] font-bold transition text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white">FR</button>
+                    <button type="button" data-lang="en" class="lang-btn px-2 py-0.5 rounded text-[11px] font-bold transition text-neutral-600 dark:text-neutral-400 hover:text-black dark:hover:text-white">EN</button>
+                </div>
+
+                <!-- زر الوضع الليلي / النهاري -->
+                <button type="button" id="themeToggle" data-i18n-title="themeTitle" title="تبديل المظهر" class="p-2 rounded-md hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-neutral-700 dark:text-neutral-300 transition">
+                    <svg id="sunIcon" class="w-4 h-4 hidden text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    <svg id="moonIcon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                    </svg>
+                </button>
+
+                <!-- زر فتح السجل (أيقونة ساعة ويندوز الشهيرة) -->
+                <button type="button" id="historyToggleBtn" data-i18n-title="historyBtnTitle" title="السجل" class="relative p-2 rounded-md hover:bg-black/[0.05] dark:hover:bg-white/[0.08] text-neutral-700 dark:text-neutral-300 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span id="historyDot" class="hidden absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#0067c0] dark:bg-[#4cc2ff]"></span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 3. شريط إعدادات الضريبة والتقريب (Sub-toolbar) -->
+        <div class="px-3 py-1.5 flex items-center justify-between gap-2 text-xs">
+            <!-- اختيار نسبة TVA -->
+            <div class="flex items-center gap-1">
+                <button type="button" data-rate="19" class="rate-btn px-2.5 py-1 rounded-md font-bold transition bg-[#0067c0] dark:bg-[#4cc2ff] text-white dark:text-[#1a1a1a] shadow-xs num-ltr">
+                    19%
+                </button>
+                <button type="button" data-rate="9" class="rate-btn px-2.5 py-1 rounded-md font-bold transition bg-white dark:bg-[#2d2d2d] text-neutral-700 dark:text-neutral-300 border border-black/5 dark:border-white/5 hover:bg-neutral-100 dark:hover:bg-[#383838] num-ltr">
+                    9%
+                </button>
+                <div class="relative flex items-center">
+                    <input type="number" id="customRate" data-i18n-placeholder="customPlaceholder" placeholder="نسبة" step="0.1" min="0" max="100"
+                        class="w-16 px-2 py-1 ltr:pr-4 rtl:pl-4 rounded-md text-xs font-semibold bg-white dark:bg-[#2d2d2d] border border-black/10 dark:border-white/10 focus:border-[#0067c0] dark:focus:border-[#4cc2ff] outline-none transition num-ltr text-center placeholder:font-sans">
+                    <span class="absolute ltr:right-1.5 rtl:left-1.5 text-[10px] text-neutral-400 pointer-events-none">%</span>
+                </div>
+            </div>
+
+            <!-- زر التقريب (0.00) + زر نسخ الملخص -->
+            <div class="flex items-center gap-1.5">
+                <button type="button" id="roundToggleBtn" data-i18n-title="roundingTitle" title="التقريب المحاسبي (0.00)"
+                    class="px-2 py-1 rounded-md text-[11px] font-bold transition bg-[#0067c0]/10 dark:bg-[#4cc2ff]/15 text-[#0067c0] dark:text-[#4cc2ff] border border-[#0067c0]/20 dark:border-[#4cc2ff]/30 num-ltr">
+                    0.00
+                </button>
+                <button type="button" id="copyAllBtn" data-i18n-title="copyAllTitle" title="نسخ التفصيل الكامل"
+                    class="p-1.5 rounded-md bg-white dark:bg-[#2d2d2d] border border-black/5 dark:border-white/5 text-neutral-600 dark:text-neutral-300 hover:text-[#0067c0] dark:hover:text-[#4cc2ff] transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- 4. شاشة العرض التفاعلية ثلاثية الصفوف (Windows Stacked Display) -->
+        <div class="px-3 pt-1 pb-2 space-y-1.5">
+            
+            <!-- سطر العملية الحسابية الجارية (Expression Line مثل حاسبة ويندوز) -->
+            <div class="h-5 px-2 flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-400">
+                <span id="activeFieldIndicator" class="font-medium truncate">HT — خارج الرسم</span>
+                <span id="expressionDisplay" class="num-ltr font-mono text-neutral-500 dark:text-neutral-400 truncate"></span>
+            </div>
+
+            <!-- بطاقة HT -->
+            <div id="row-HT" data-field="HT" class="display-row cursor-pointer relative rounded-lg px-3 py-2 bg-white dark:bg-[#2b2b2b] border-2 border-[#0067c0] dark:border-[#4cc2ff] shadow-xs transition-all flex items-center justify-between group">
+                <!-- مؤشر التحديد الجانبي على طراز ويندوز 11 -->
+                <span class="active-pill absolute ltr:left-0 rtl:right-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full bg-[#0067c0] dark:bg-[#4cc2ff]"></span>
+                
+                <div class="flex flex-col ps-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-extrabold tracking-wide text-[#0067c0] dark:text-[#4cc2ff]">HT</span>
+                        <span data-i18n="shortHT" class="text-[11px] text-neutral-500 dark:text-neutral-400">خارج الرسم</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <span id="val-HT" class="num-ltr text-2xl sm:text-[26px] font-bold tracking-tight text-neutral-900 dark:text-white truncate">0</span>
+                    <button type="button" data-copy="HT" class="copy-row-icon opacity-60 sm:opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 text-neutral-500 dark:text-neutral-400 transition" title="Copy">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- بطاقة TVA -->
+            <div id="row-TVA" data-field="TVA" class="display-row cursor-pointer relative rounded-lg px-3 py-2 bg-white/70 dark:bg-[#272727] border-2 border-transparent hover:bg-white dark:hover:bg-[#2b2b2b] transition-all flex items-center justify-between group">
+                <span class="active-pill hidden absolute ltr:left-0 rtl:right-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full bg-[#0067c0] dark:bg-[#4cc2ff]"></span>
+                
+                <div class="flex flex-col ps-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-extrabold tracking-wide text-amber-600 dark:text-amber-400">TVA</span>
+                        <span id="rateBadgeText" class="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 num-ltr">(19%)</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <span id="val-TVA" class="num-ltr text-xl sm:text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400 truncate">0</span>
+                    <button type="button" data-copy="TVA" class="copy-row-icon opacity-60 sm:opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 text-neutral-500 dark:text-neutral-400 transition" title="Copy">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- بطاقة TTC -->
+            <div id="row-TTC" data-field="TTC" class="display-row cursor-pointer relative rounded-lg px-3 py-2 bg-white/70 dark:bg-[#272727] border-2 border-transparent hover:bg-white dark:hover:bg-[#2b2b2b] transition-all flex items-center justify-between group">
+                <span class="active-pill hidden absolute ltr:left-0 rtl:right-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full bg-[#0067c0] dark:bg-[#4cc2ff]"></span>
+                
+                <div class="flex flex-col ps-1.5">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-extrabold tracking-wide text-emerald-600 dark:text-emerald-400">TTC</span>
+                        <span data-i18n="shortTTC" class="text-[11px] text-neutral-500 dark:text-neutral-400">شامل الرسوم</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <span id="val-TTC" class="num-ltr text-2xl sm:text-[26px] font-bold tracking-tight text-emerald-600 dark:text-emerald-400 truncate">0</span>
+                    <button type="button" data-copy="TTC" class="copy-row-icon opacity-60 sm:opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 text-neutral-500 dark:text-neutral-400 transition" title="Copy">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 5. شريط الذاكرة والإجراءات السريعة (Windows Memory Bar M-style) -->
+        <div class="px-3 py-1 grid grid-cols-4 gap-1 text-xs font-semibold">
+            <button type="button" data-target="HT" class="field-switch-btn py-1.5 rounded hover:bg-black/[0.05] dark:hover:bg-white/[0.07] text-[#0067c0] dark:text-[#4cc2ff] transition">
+                HT
+            </button>
+            <button type="button" data-target="TVA" class="field-switch-btn py-1.5 rounded hover:bg-black/[0.05] dark:hover:bg-white/[0.07] text-neutral-600 dark:text-neutral-400 transition">
+                TVA
+            </button>
+            <button type="button" data-target="TTC" class="field-switch-btn py-1.5 rounded hover:bg-black/[0.05] dark:hover:bg-white/[0.07] text-neutral-600 dark:text-neutral-400 transition">
+                TTC
+            </button>
+            <button type="button" id="saveHistoryBtn" data-i18n="saveShortBtn" class="py-1.5 rounded hover:bg-black/[0.05] dark:hover:bg-white/[0.07] text-neutral-700 dark:text-neutral-200 transition flex items-center justify-center gap-1">
+                <span>+</span><span data-i18n="saveWord">حفظ</span>
+            </button>
+        </div>
+
+        <!-- 6. لوحة مفاتيح حاسبة ويندوز 11 (Tactile 4x5 Keypad Grid) -->
+        <div class="p-1.5 pt-1 grid grid-cols-4 gap-1 bg-[#f3f3f3] dark:bg-[#202020]" dir="ltr">
+            
+            <!-- الصف الأول: % | CE | C | Backspace -->
+            <button type="button" data-key="toggleRate" class="win-key h-12 rounded-md bg-[#f9f9f9] dark:bg-[#323232] hover:bg-[#f0f0f0] dark:hover:bg-[#3c3c3c] border border-black/[0.06] dark:border-white/[0.04] text-sm font-medium text-neutral-700 dark:text-neutral-200 flex items-center justify-center">
+                19/9%
+            </button>
+            <button type="button" data-key="CE" class="win-key h-12 rounded-md bg-[#f9f9f9] dark:bg-[#323232] hover:bg-[#f0f0f0] dark:hover:bg-[#3c3c3c] border border-black/[0.06] dark:border-white/[0.04] text-sm font-medium text-neutral-700 dark:text-neutral-200 flex items-center justify-center">
+                CE
+            </button>
+            <button type="button" data-key="C" class="win-key h-12 rounded-md bg-[#f9f9f9] dark:bg-[#323232] hover:bg-[#f0f0f0] dark:hover:bg-[#3c3c3c] border border-black/[0.06] dark:border-white/[0.04] text-sm font-medium text-neutral-700 dark:text-neutral-200 flex items-center justify-center">
+                C
+            </button>
+            <button type="button" data-key="BACKSPACE" class="win-key h-12 rounded-md bg-[#f9f9f9] dark:bg-[#323232] hover:bg-[#f0f0f0] dark:hover:bg-[#3c3c3c] border border-black/[0.06] dark:border-white/[0.04] text-neutral-700 dark:text-neutral-200 flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z"/>
+                </svg>
+            </button>
+
+            <!-- الصف الثاني: 7 | 8 | 9 | ÷ -->
+            <button type="button" data-num="7" class="win-key h-12 rounded-md bg-white dark:bg-[#3b3b3b] hover:bg-[#f9f9f9] dark:hover:bg-[#323232] border border-black/[0.06] dark:border-white/[0.04] text-lg font-semibold text-neutral-900 dark:text-white flex items-center justify-center">
+                7
+            </button>
+            <button type="button" data-num="8" class="win-key h-12 rounded-md bg-white dark:bg-[#3b3b3b] hover:bg-[#f9f9f9] dark:hover:bg-[#323232] border border-black/[0.06] dark:border-white/[0.04] text-lg font-semibold text-neutral-900 dark:text-white flex items-center justify-center">
+                8
+            </button>
+            <button type="button" data-num="9" class="win-key h-12 rounded-md bg-white dark:bg-[#3b3b3b] hover:bg-[#f9f9f9] dark:hover:bg-[#323232] border border-black/[0.06] dark:border-white/[0.04] text-lg font-semibold text-neutral-900 dark:text-white flex items-center justify-center">
+                9
+            </button>
+            <button type="button" data-op="/" class="win-key h-12 rounded-md bg-[#f9f9f9] dark:bg-[#323232] hover:bg-[#f0f0f0] dark:hover:bg-[#3c3c3c] border border-black/[0.06] dark:border-white/[0.04] text-lg font-normal text-neutral-700 dark:text-neutral-200 flex items-center justify-center">
+                ÷
+            </button>
+
+            <!-- الصف الثالث: 4 | 5 | 6 | × -->
+            <button type="button" data-num="4" class="win-key h-12 rounded-md bg-white dark:bg-[#3b3b3b] hover:bg-[#f9f9f9] dark:hover:bg-[#323232] border border-black/[0.06] dark:border-white/[0.04] text-lg font-semibold text-neutral-900 dark:text-white flex items-center justify-center">
+                4
+            </button>
+            <button type="button" data-num="5" class="win-key h-12 rounded-md bg-white dark:bg-[#3b3b3b] hover:bg-[#f9f9f9] dark:hover:bg-[#323232] border border-black/[0.06] dark:border-white/[0.04] text-lg font-semibold text-neutral-900 dark:text-white flex items-center justify-center">
+                5
+            </button>
+            <button type="button" data-num="6" class="win-key h-12 rounded-md bg-white dark:bg-[#3b3b3b] hover:bg-[#f9f9f9] dark:hover:bg-[#323232] border border-black/[0.06] dark:border-white/[0.04] text-lg font-semibold text-neutral-900 dark:text-white flex items-center justify-center">
+                6
+            </button>
+            <button type="button" data-op="*" class="win-key h-12 rounded-md bg-[#f9f9f9] dark:bg-[#323232] hover:bg-[#f0f0f0] dark:hover:bg-[#3c3c3c] border border-black/[0.06] dark:border-white/[0.04] text-lg font-normal text-neutral-700 dark:text-neutral-200 flex items-center justify-center">
+                ×
+            </button>
+
+            <!-- الصف الرابع: 1 | 2 | 3 | − -->
+            <button type="button" data-num="1" class="win-key h-12 rounded-md bg-white dark:bg-[#3b3b3b] hover:bg-[#f9f9f9] dark:hover:bg-[#323232] border border-black/[0.06] dark:border-white/[0.04] text-lg font-semibold text-neutral-900 dark:text-white flex items-center justify-center">
+                1
+            </button>
+            <button type="button" data-num="2" class="win-key h-12 rounded-md bg-white dark:bg-[#3b3b3b] hover:bg-[#f9f9f9] dark:hover:bg-[#323232] border border-black/[0.06] dark:border-white/[0.04] text-lg font-semibold text-neutral-900 dark:text-white flex items-center justify-center">
+                2
+            </button>
+            <button type="button" data-num="3" class="win-key h-12 rounded-md bg-white dark:bg-[#3b3b3b] hover:bg-[#f9f9f9] dark:hover:bg-[#323232] border border-black/[0.06] dark:border-white/[0.04] text-lg font-semibold text-neutral-900 dark:text-white flex items-center justify-center">
+                3
+            </button>
+            <button type="button" data-op="-" class="win-key h-12 rounded-md bg-[#f9f9f9] dark:bg-[#323232] hover:bg-[#f0f0f0] dark:hover:bg-[#3c3c3c] border border-black/[0.06] dark:border-white/[0.04] text-lg font-normal text-neutral-700 dark:text-neutral-200 flex items-center justify-center">
+                −
+            </button>
+
+            <!-- الصف الخامس: 00 | 0 | . | + -->
+            <button type="button" data-num="00" class="win-key h-12 rounded-md bg-white dark:bg-[#3b3b3b] hover:bg-[#f9f9f9] dark:hover:bg-[#323232] border border-black/[0.06] dark:border-white/[0.04] text-base font-semibold text-neutral-900 dark:text-white flex items-center justify-center">
+                00
+            </button>
+            <button type="button" data-num="0" class="win-key h-12 rounded-md bg-white dark:bg-[#3b3b3b] hover:bg-[#f9f9f9] dark:hover:bg-[#323232] border border-black/[0.06] dark:border-white/[0.04] text-lg font-semibold text-neutral-900 dark:text-white flex items-center justify-center">
+                0
+            </button>
+            <button type="button" data-num="." class="win-key h-12 rounded-md bg-white dark:bg-[#3b3b3b] hover:bg-[#f9f9f9] dark:hover:bg-[#323232] border border-black/[0.06] dark:border-white/[0.04] text-lg font-bold text-neutral-900 dark:text-white flex items-center justify-center">
+                .
+            </button>
+            <button type="button" data-op="+" class="win-key h-12 rounded-md bg-[#f9f9f9] dark:bg-[#323232] hover:bg-[#f0f0f0] dark:hover:bg-[#3c3c3c] border border-black/[0.06] dark:border-white/[0.04] text-lg font-normal text-neutral-700 dark:text-neutral-200 flex items-center justify-center">
+                +
+            </button>
+
+            <!-- زر يساوي (=) العريض المميز بلون ويندوز الأساسي (Windows Accent Button) -->
+            <button type="button" data-key="EQUALS" class="win-key col-span-4 h-11 mt-0.5 rounded-md bg-[#0067c0] hover:bg-[#005fb3] dark:bg-[#4cc2ff] dark:hover:bg-[#42b4f0] text-white dark:text-[#1a1a1a] text-xl font-semibold shadow-xs flex items-center justify-center">
+                =
+            </button>
+        </div>
+
+        <!-- 7. درج السجل المنزلق بأسلوب حاسبة ويندوز (Slide-up History Drawer) -->
+        <div id="historyDrawer" class="hidden absolute inset-x-0 bottom-0 top-9 bg-[#f9f9f9]/95 dark:bg-[#242424]/95 backdrop-blur-md z-30 flex flex-col animate-slide-up border-t border-black/10 dark:border-white/10">
+            <!-- رأس السجل -->
+            <div class="px-4 py-3 flex items-center justify-between border-b border-black/5 dark:border-white/5">
+                <div class="flex items-center gap-2">
+                    <span data-i18n="historyTitle" class="text-sm font-bold">السجل</span>
+                    <span id="historyCount" class="text-[11px] font-mono px-1.5 py-0.5 rounded bg-black/5 dark:bg-white/10 text-neutral-600 dark:text-neutral-300">0</span>
+                </div>
+                <button type="button" id="closeHistoryBtn" class="p-1.5 rounded-md hover:bg-black/5 dark:hover:bg-white/10 text-neutral-600 dark:text-neutral-300">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- محتوى السجل -->
+            <div id="historyListContainer" class="flex-1 overflow-y-auto p-3 space-y-2">
+                <div id="emptyHistoryMsg" class="h-full flex flex-col items-center justify-center text-center p-6 text-neutral-500 dark:text-neutral-400">
+                    <p data-i18n="emptyHistoryTitle" class="text-sm font-medium">لا يوجد سجل حتى الآن</p>
+                    <p data-i18n="emptyHistorySub" class="text-xs opacity-75 mt-1">اضغط على "حفظ" أو مفتاح Enter للاحتفاظ بالعمليات هنا.</p>
+                </div>
+            </div>
+
+            <!-- تذييل السجل (زر سلة المهملات لمسح السجل مثل ويندوز) -->
+            <div id="historyFooter" class="hidden px-4 py-2.5 border-t border-black/5 dark:border-white/5 flex justify-end">
+                <button type="button" id="clearHistoryBtn" data-i18n-title="clearHistoryTitle" title="مسح السجل" class="p-2 rounded-md hover:bg-rose-500/10 text-neutral-600 dark:text-neutral-300 hover:text-rose-600 dark:hover:text-rose-400 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- قاموس اللغات (عربي / فرنسي / إنجليزي) ---
+            const i18n = {
+                ar: {
+                    windowTitle: 'حاسبة الضريبة',
+                    modeTitle: 'محاسبة TVA',
+                    customPlaceholder: 'نسبة',
+                    shortHT: 'خارج الرسم',
+                    shortTTC: 'شامل الرسوم',
+                    indicatorHT: 'HT — المبلغ خارج الرسم',
+                    indicatorTVA: 'TVA — قيمة الرسم',
+                    indicatorTTC: 'TTC — المبلغ شامل الرسوم',
+                    saveWord: 'حفظ',
+                    historyTitle: 'السجل',
+                    emptyHistoryTitle: 'لا يوجد سجل حتى الآن',
+                    emptyHistorySub: 'اضغط على "حفظ" أو مفتاح Enter للاحتفاظ بالعمليات هنا.',
+                    clearAllTitle: 'مسح الكل',
+                    themeTitle: 'تبديل المظهر',
+                    historyBtnTitle: 'السجل',
+                    roundingTitle: 'التقريب المحاسبي (0.00)',
+                    copyAllTitle: 'نسخ التفصيل الكامل',
+                    clearHistoryTitle: 'مسح السجل',
+                    toastCopied: 'تم النسخ:',
+                    toastSaved: 'تم الحفظ في السجل',
+                    toastRestored: 'تمت استعادة العملية',
+                    toastZero: 'أدخل مبلغاً أولاً',
+                    toastCleared: 'تم مسح السجل',
+                    toastWinDemo: 'نافذة حاسبة ويندوز التفاعلية'
+                },
+                fr: {
+                    windowTitle: 'Calculatrice TVA',
+                    modeTitle: 'Comptabilité TVA',
+                    customPlaceholder: 'Taux',
+                    shortHT: 'Hors Taxes',
+                    shortTTC: 'Toutes Taxes',
+                    indicatorHT: 'HT — Montant Hors Taxes',
+                    indicatorTVA: 'TVA — Montant de la taxe',
+                    indicatorTTC: 'TTC — Toutes Taxes Comprises',
+                    saveWord: 'Enreg.',
+                    historyTitle: 'Historique',
+                    emptyHistoryTitle: 'Aucun historique',
+                    emptyHistorySub: 'Cliquez sur "Enreg." ou appuyez sur Entrée pour sauvegarder.',
+                    clearAllTitle: 'Tout effacer',
+                    themeTitle: 'Changer le thème',
+                    historyBtnTitle: 'Historique',
+                    roundingTitle: 'Arrondi comptable (0.00)',
+                    copyAllTitle: 'Copier le détail complet',
+                    clearHistoryTitle: 'Effacer l\'historique',
+                    toastCopied: 'Copié :',
+                    toastSaved: 'Enregistré dans l\'historique',
+                    toastRestored: 'Calcul restauré',
+                    toastZero: 'Saisissez un montant d\'abord',
+                    toastCleared: 'Historique effacé',
+                    toastWinDemo: 'Fenêtre Calculatrice Windows'
+                },
+                en: {
+                    windowTitle: 'VAT Calculator',
+                    modeTitle: 'VAT Accounting',
+                    customPlaceholder: 'Rate',
+                    shortHT: 'Excl. Tax',
+                    shortTTC: 'Incl. Tax',
+                    indicatorHT: 'HT — Net Amount Excl. Tax',
+                    indicatorTVA: 'TVA — Tax Amount (VAT)',
+                    indicatorTTC: 'TTC — Gross Amount Incl. Tax',
+                    saveWord: 'Save',
+                    historyTitle: 'History',
+                    emptyHistoryTitle: 'There\'s no history yet',
+                    emptyHistorySub: 'Click "Save" or press Enter to keep calculations here.',
+                    clearAllTitle: 'Clear All',
+                    themeTitle: 'Toggle Theme',
+                    historyBtnTitle: 'History',
+                    roundingTitle: 'Accounting Rounding (0.00)',
+                    copyAllTitle: 'Copy Full Breakdown',
+                    clearHistoryTitle: 'Clear History',
+                    toastCopied: 'Copied:',
+                    toastSaved: 'Saved to history',
+                    toastRestored: 'Calculation restored',
+                    toastZero: 'Enter an amount first',
+                    toastCleared: 'History cleared',
+                    toastWinDemo: 'Windows Calculator Window'
+                }
+            };
+
+            // --- حالة الحاسبة ---
+            let currentLang = localStorage.getItem('win_tva_lang') || 'ar';
+            let taxRate = 19;
+            let useRounding = true;
+            let activeField = 'HT'; // 'HT' | 'TVA' | 'TTC'
+
+            // حالة الإدخال والحسابات الداخلية (مثل آلة ويندوز الحقيقية)
+            let inputBuffer = '0';      // النص المعروض في الحقل النشط حالياً
+            let isNewEntry = true;      // هل يبدأ الرقم الجديد بالكتابة فوق الحالي؟
+            let pendingOp = null;       // العملية الحسابية المعلقة (+, -, *, /)
+            let accumulator = null;     // الرقم الأول قبل العملية الحسابية
+            let exactValues = { ht: 0, tva: 0, ttc: 0 };
+            let historyList = [];
+
+            // --- عناصر DOM ---
+            const valEls = {
+                HT: document.getElementById('val-HT'),
+                TVA: document.getElementById('val-TVA'),
+                TTC: document.getElementById('val-TTC')
+            };
+            const rowEls = {
+                HT: document.getElementById('row-HT'),
+                TVA: document.getElementById('row-TVA'),
+                TTC: document.getElementById('row-TTC')
+            };
+            const activeFieldIndicator = document.getElementById('activeFieldIndicator');
+            const expressionDisplay = document.getElementById('expressionDisplay');
+            const rateBadgeText = document.getElementById('rateBadgeText');
+            const customRateInput = document.getElementById('customRate');
+            const rateBtns = document.querySelectorAll('.rate-btn');
+            const roundToggleBtn = document.getElementById('roundToggleBtn');
+            const fieldSwitchBtns = document.querySelectorAll('.field-switch-btn');
+
+            const historyDrawer = document.getElementById('historyDrawer');
+            const historyToggleBtn = document.getElementById('historyToggleBtn');
+            const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+            const historyListContainer = document.getElementById('historyListContainer');
+            const emptyHistoryMsg = document.getElementById('emptyHistoryMsg');
+            const historyFooter = document.getElementById('historyFooter');
+            const historyCount = document.getElementById('historyCount');
+            const historyDot = document.getElementById('historyDot');
+
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            let toastTimer;
+
+            // --- دالة الإشعارات ---
+            function showToast(text) {
+                toastMessage.textContent = text;
+                toast.classList.remove('opacity-0', 'translate-y-3');
+                toast.classList.add('opacity-100', 'translate-y-0');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => {
+                    toast.classList.remove('opacity-100', 'translate-y-0');
+                    toast.classList.add('opacity-0', 'translate-y-3');
+                }, 1800);
+            }
+
+            // --- تنسيق الأرقام للعرض ---
+            function formatNum(num) {
+                if (isNaN(num) || !isFinite(num)) return '0';
+                if (useRounding) {
+                    const rounded = Math.round((num + Number.EPSILON) * 100) / 100;
+                    return rounded.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                } else {
+                    const clean = parseFloat(num.toFixed(6));
+                    return clean.toLocaleString('en-US', { maximumFractionDigits: 6 });
+                }
+            }
+
+            // --- تحديث الحسابات بناءً على الحقل النشط ---
+            function recalculateAll() {
+                const numericVal = parseFloat(inputBuffer) || 0;
+                const r = taxRate / 100;
+
+                if (activeField === 'HT') {
+                    exactValues.ht = numericVal;
+                    exactValues.tva = numericVal * r;
+                    exactValues.ttc = numericVal + exactValues.tva;
+                } else if (activeField === 'TVA') {
+                    exactValues.tva = numericVal;
+                    exactValues.ht = r > 0 ? numericVal / r : 0;
+                    exactValues.ttc = exactValues.ht + exactValues.tva;
+                } else if (activeField === 'TTC') {
+                    exactValues.ttc = numericVal;
+                    exactValues.ht = numericVal / (1 + r);
+                    exactValues.tva = exactValues.ttc - exactValues.ht;
+                }
+
+                // تحديث الشاشة
+                ['HT', 'TVA', 'TTC'].forEach(field => {
+                    if (field === activeField && !isNewEntry) {
+                        // عرض الرقم أثناء كتابته مع فواصل الآلاف للجزء الصحيح فقط
+                        const parts = inputBuffer.split('.');
+                        const intFormatted = parseInt(parts[0] || '0', 10).toLocaleString('en-US');
+                        valEls[field].textContent = parts.length > 1 ? `${intFormatted}.${parts[1]}` : intFormatted;
+                    } else {
+                        const val = field === 'HT' ? exactValues.ht : (field === 'TVA' ? exactValues.tva : exactValues.ttc);
+                        valEls[field].textContent = formatNum(val);
+                    }
+                });
+            }
+
+            // --- تبديل الحقل النشط (HT / TVA / TTC) ---
+            function setActiveField(field) {
+                if (activeField === field) return;
+                
+                // إنهاء أي عملية حسابية معلقة قبل الانتقال
+                if (pendingOp !== null) {
+                    evaluatePendingOperation();
+                }
+
+                activeField = field;
+                const currentExact = field === 'HT' ? exactValues.ht : (field === 'TVA' ? exactValues.tva : exactValues.ttc);
+                inputBuffer = currentExact === 0 ? '0' : parseFloat(currentExact.toFixed(6)).toString();
+                isNewEntry = true;
+                expressionDisplay.textContent = '';
+
+                // تحديث المظهر البصري للصفوف
+                ['HT', 'TVA', 'TTC'].forEach(f => {
+                    const row = rowEls[f];
+                    const pill = row.querySelector('.active-pill');
+                    if (f === field) {
+                        row.classList.remove('bg-white/70', 'dark:bg-[#272727]', 'border-transparent');
+                        row.classList.add('bg-white', 'dark:bg-[#2b2b2b]', 'border-[#0067c0]', 'dark:border-[#4cc2ff]', 'shadow-xs');
+                        pill.classList.remove('hidden');
+                    } else {
+                        row.classList.add('bg-white/70', 'dark:bg-[#272727]', 'border-transparent');
+                        row.classList.remove('bg-white', 'dark:bg-[#2b2b2b]', 'border-[#0067c0]', 'dark:border-[#4cc2ff]', 'shadow-xs');
+                        pill.classList.add('hidden');
+                    }
+                });
+
+                // تحديث أزرار التبديل العلوية
+                fieldSwitchBtns.forEach(btn => {
+                    if (btn.dataset.target === field) {
+                        btn.classList.add('text-[#0067c0]', 'dark:text-[#4cc2ff]');
+                        btn.classList.remove('text-neutral-600', 'dark:text-neutral-400');
+                    } else {
+                        btn.classList.remove('text-[#0067c0]', 'dark:text-[#4cc2ff]');
+                        btn.classList.add('text-neutral-600', 'dark:text-neutral-400');
+                    }
+                });
+
+                updateIndicatorText();
+                recalculateAll();
+            }
+
+            function updateIndicatorText() {
+                const dict = i18n[currentLang];
+                if (activeField === 'HT') activeFieldIndicator.textContent = dict.indicatorHT;
+                if (activeField === 'TVA') activeFieldIndicator.textContent = dict.indicatorTVA;
+                if (activeField === 'TTC') activeFieldIndicator.textContent = dict.indicatorTTC;
+            }
+
+            // --- إدخال الأرقام ---
+            function inputDigit(digit) {
+                if (isNewEntry) {
+                    if (digit === '.') {
+                        inputBuffer = '0.';
+                    } else if (digit === '00' || digit === '0') {
+                        inputBuffer = '0';
+                    } else {
+                        inputBuffer = digit;
+                    }
+                    isNewEntry = false;
+                } else {
+                    if (digit === '.') {
+                        if (!inputBuffer.includes('.')) inputBuffer += '.';
+                    } else {
+                        if (inputBuffer === '0') {
+                            inputBuffer = (digit === '00') ? '0' : digit;
+                        } else if (inputBuffer.replace('.', '').length < 13) {
+                            inputBuffer += digit;
+                        }
+                    }
+                }
+                recalculateAll();
+            }
+
+            // --- العمليات الحسابية داخل الحقل النشط (+, -, *, /) ---
+            function handleOperator(op) {
+                const currentVal = parseFloat(inputBuffer) || 0;
+                const opSymbol = op === '*' ? '×' : (op === '/' ? '÷' : (op === '-' ? '−' : '+'));
+
+                if (pendingOp !== null && !isNewEntry) {
+                    evaluatePendingOperation();
+                    accumulator = parseFloat(inputBuffer) || 0;
+                } else {
+                    accumulator = currentVal;
+                }
+
+                pendingOp = op;
+                isNewEntry = true;
+                expressionDisplay.textContent = `${accumulator} ${opSymbol}`;
+            }
+
+            function evaluatePendingOperation() {
+                if (pendingOp === null || accumulator === null) {
+                    // إذا ضغط المستخدم = بدون عملية معلقة، يقوم بتنسيق الرقم وإضافته للسجل
+                    isNewEntry = true;
+                    recalculateAll();
+                    return;
+                }
+
+                const secondVal = parseFloat(inputBuffer) || 0;
+                const opSymbol = pendingOp === '*' ? '×' : (pendingOp === '/' ? '÷' : (pendingOp === '-' ? '−' : '+'));
+                let result = 0;
+
+                if (pendingOp === '+') result = accumulator + secondVal;
+                if (pendingOp === '-') result = accumulator - secondVal;
+                if (pendingOp === '*') result = accumulator * secondVal;
+                if (pendingOp === '/') result = secondVal !== 0 ? accumulator / secondVal : 0;
+
+                expressionDisplay.textContent = `${accumulator} ${opSymbol} ${secondVal} =`;
+                inputBuffer = parseFloat(result.toFixed(6)).toString();
+                pendingOp = null;
+                accumulator = null;
+                isNewEntry = true;
+                recalculateAll();
+            }
+
+            // --- مسح وتراجع ---
+            function handleBackspace() {
+                if (isNewEntry) return;
+                if (inputBuffer.length <= 1 || (inputBuffer.length === 2 && inputBuffer.startsWith('-'))) {
+                    inputBuffer = '0';
+                    isNewEntry = true;
+                } else {
+                    inputBuffer = inputBuffer.slice(0, -1);
+                }
+                recalculateAll();
+            }
+
+            function clearEntry() {
+                inputBuffer = '0';
+                isNewEntry = true;
+                recalculateAll();
+            }
+
+            function clearAll() {
+                inputBuffer = '0';
+                isNewEntry = true;
+                pendingOp = null;
+                accumulator = null;
+                expressionDisplay.textContent = '';
+                exactValues = { ht: 0, tva: 0, ttc: 0 };
+                recalculateAll();
+            }
+
+            // --- تغيير نسبة الضريبة ---
+            function setTaxRate(newRate, isCustom = false) {
+                if (isNaN(newRate) || newRate < 0) return;
+                taxRate = newRate;
+                rateBadgeText.textContent = `(${newRate}%)`;
+
+                rateBtns.forEach(btn => {
+                    const r = parseFloat(btn.dataset.rate);
+                    if (!isCustom && r === newRate) {
+                        btn.classList.remove('bg-white', 'dark:bg-[#2d2d2d]', 'text-neutral-700', 'dark:text-neutral-300');
+                        btn.classList.add('bg-[#0067c0]', 'dark:bg-[#4cc2ff]', 'text-white', 'dark:text-[#1a1a1a]');
+                    } else {
+                        btn.classList.add('bg-white', 'dark:bg-[#2d2d2d]', 'text-neutral-700', 'dark:text-neutral-300');
+                        btn.classList.remove('bg-[#0067c0]', 'dark:bg-[#4cc2ff]', 'text-white', 'dark:text-[#1a1a1a]');
+                    }
+                });
+
+                // إعادة التزامن مع القيمة الدقيقة للحقل النشط
+                const currentExact = activeField === 'HT' ? exactValues.ht : (activeField === 'TVA' ? exactValues.tva : exactValues.ttc);
+                inputBuffer = currentExact === 0 ? '0' : parseFloat(currentExact.toFixed(6)).toString();
+                isNewEntry = true;
+                recalculateAll();
+            }
+
+            // --- نسخ إلى الحافظة ---
+            function copyToClipboard(text, label = '') {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                try {
+                    document.execCommand('copy');
+                    showToast(`${i18n[currentLang].toastCopied} ${label} ${text}`);
+                } catch (e) {}
+                document.body.removeChild(ta);
+            }
+
+            // --- السجل (History) ---
+            function loadHistory() {
+                try {
+                    const saved = localStorage.getItem('win_tva_history');
+                    if (saved) historyList = JSON.parse(saved);
+                } catch (e) { historyList = []; }
+                renderHistory();
+            }
+
+            function saveToHistory() {
+                const dict = i18n[currentLang];
+                if (exactValues.ht === 0 && exactValues.ttc === 0) {
+                    showToast(dict.toastZero);
+                    return;
+                }
+
+                const entry = {
+                    id: Date.now(),
+                    rate: taxRate,
+                    ht: exactValues.ht,
+                    tva: exactValues.tva,
+                    ttc: exactValues.ttc,
+                    htStr: formatNum(exactValues.ht),
+                    tvaStr: formatNum(exactValues.tva),
+                    ttcStr: formatNum(exactValues.ttc)
+                };
+
+                historyList.unshift(entry);
+                if (historyList.length > 20) historyList.pop();
+                try { localStorage.setItem('win_tva_history', JSON.stringify(historyList)); } catch (e) {}
+                renderHistory();
+                showToast(dict.toastSaved);
+            }
+
+            function renderHistory() {
+                historyCount.textContent = historyList.length;
+                historyDot.classList.toggle('hidden', historyList.length === 0);
+
+                if (historyList.length === 0) {
+                    emptyHistoryMsg.classList.remove('hidden');
+                    historyFooter.classList.add('hidden');
+                    Array.from(historyListContainer.children).forEach(el => {
+                        if (el.id !== 'emptyHistoryMsg') el.remove();
+                    });
+                    return;
+                }
+
+                emptyHistoryMsg.classList.add('hidden');
+                historyFooter.classList.remove('hidden');
+                Array.from(historyListContainer.children).forEach(el => {
+                    if (el.id !== 'emptyHistoryMsg') el.remove();
+                });
+
+                historyList.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'cursor-pointer p-2.5 rounded-lg bg-white dark:bg-[#2c2c2c] hover:bg-black/[0.03] dark:hover:bg-white/[0.06] border border-black/5 dark:border-white/5 transition text-right';
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between text-[11px] text-neutral-500 dark:text-neutral-400 mb-1">
+                            <span class="num-ltr font-semibold text-[#0067c0] dark:text-[#4cc2ff]">TVA ${item.rate}%</span>
+                            <span class="num-ltr">HT: ${item.htStr} | TVA: ${item.tvaStr}</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-neutral-500">TTC =</span>
+                            <span class="num-ltr text-base font-bold text-neutral-900 dark:text-white">${item.ttcStr}</span>
+                        </div>
+                    `;
+                    card.addEventListener('click', () => {
+                        if (item.rate === 19 || item.rate === 9) {
+                            customRateInput.value = '';
+                            setTaxRate(item.rate, false);
+                        } else {
+                            customRateInput.value = item.rate;
+                            setTaxRate(item.rate, true);
+                        }
+                        activeField = 'HT';
+                        setActiveField('HT');
+                        exactValues = { ht: item.ht, tva: item.tva, ttc: item.ttc };
+                        inputBuffer = parseFloat(item.ht.toFixed(6)).toString();
+                        isNewEntry = true;
+                        recalculateAll();
+                        historyDrawer.classList.add('hidden');
+                        showToast(i18n[currentLang].toastRestored);
+                    });
+                    historyListContainer.appendChild(card);
+                });
+            }
+
+            // --- تغيير اللغة ---
+            function applyLanguage(lang) {
+                if (!i18n[lang]) return;
+                currentLang = lang;
+                localStorage.setItem('win_tva_lang', lang);
+
+                document.documentElement.lang = lang;
+                document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+                const dict = i18n[lang];
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const k = el.getAttribute('data-i18n');
+                    if (dict[k]) el.textContent = dict[k];
+                });
+                document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                    const k = el.getAttribute('data-i18n-placeholder');
+                    if (dict[k]) el.placeholder = dict[k];
+                });
+                document.querySelectorAll('[data-i18n-title]').forEach(el => {
+                    const k = el.getAttribute('data-i18n-title');
+                    if (dict[k]) el.title = dict[k];
+                });
+
+                document.querySelectorAll('.lang-btn').forEach(btn => {
+                    if (btn.dataset.lang === lang) {
+                        btn.classList.add('bg-white', 'dark:bg-[#323232]', 'text-[#0067c0]', 'dark:text-[#4cc2ff]', 'shadow-sm');
+                        btn.classList.remove('text-neutral-600', 'dark:text-neutral-400');
+                    } else {
+                        btn.classList.remove('bg-white', 'dark:bg-[#323232]', 'text-[#0067c0]', 'dark:text-[#4cc2ff]', 'shadow-sm');
+                        btn.classList.add('text-neutral-600', 'dark:text-neutral-400');
+                    }
+                });
+
+                updateIndicatorText();
+            }
+
+            // --- المظهر (فاتح / داكن) ---
+            const themeToggle = document.getElementById('themeToggle');
+            const sunIcon = document.getElementById('sunIcon');
+            const moonIcon = document.getElementById('moonIcon');
+
+            function initTheme() {
+                const saved = localStorage.getItem('win_tva_theme');
+                const sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (saved === 'dark' || (!saved && sysDark)) {
+                    document.documentElement.classList.add('dark');
+                    sunIcon.classList.remove('hidden');
+                    moonIcon.classList.add('hidden');
+                }
+            }
+
+            themeToggle.addEventListener('click', () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('win_tva_theme', isDark ? 'dark' : 'light');
+                sunIcon.classList.toggle('hidden', !isDark);
+                moonIcon.classList.toggle('hidden', isDark);
+            });
+
+            // --- ربط الأحداث ---
+            // النقر على صفوف الشاشة
+            Object.values(rowEls).forEach(row => {
+                row.addEventListener('click', (e) => {
+                    if (e.target.closest('.copy-row-icon')) return;
+                    setActiveField(row.dataset.field);
+                });
+            });
+
+            // أزرار التبديل العلوية
+            fieldSwitchBtns.forEach(btn => {
+                btn.addEventListener('click', () => setActiveField(btn.dataset.target));
+            });
+
+            // أزرار النسخ الفردية
+            document.querySelectorAll('.copy-row-icon').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const field = btn.dataset.copy;
+                    copyToClipboard(valEls[field].textContent.replace(/,/g, ''), field);
+                });
+            });
+
+            // نسخ التفصيل الكامل
+            document.getElementById('copyAllBtn').addEventListener('click', () => {
+                const summary = `HT: ${valEls.HT.textContent} | TVA (${taxRate}%): ${valEls.TVA.textContent} | TTC: ${valEls.TTC.textContent}`;
+                copyToClipboard(summary);
+            });
+
+            // أزرار لوحة المفاتيح على الشاشة
+            document.querySelectorAll('[data-num]').forEach(btn => {
+                btn.addEventListener('click', () => inputDigit(btn.dataset.num));
+            });
+
+            document.querySelectorAll('[data-op]').forEach(btn => {
+                btn.addEventListener('click', () => handleOperator(btn.dataset.op));
+            });
+
+            document.querySelector('[data-key="BACKSPACE"]').addEventListener('click', handleBackspace);
+            document.querySelector('[data-key="CE"]').addEventListener('click', clearEntry);
+            document.querySelector('[data-key="C"]').addEventListener('click', clearAll);
+            document.querySelector('[data-key="EQUALS"]').addEventListener('click', evaluatePendingOperation);
+            document.querySelector('[data-key="toggleRate"]').addEventListener('click', () => {
+                customRateInput.value = '';
+                setTaxRate(taxRate === 19 ? 9 : 19, false);
+            });
+
+            // نسب الضريبة
+            rateBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    customRateInput.value = '';
+                    setTaxRate(parseFloat(btn.dataset.rate), false);
+                });
+            });
+
+            customRateInput.addEventListener('input', () => {
+                const v = parseFloat(customRateInput.value);
+                if (!isNaN(v) && v >= 0) setTaxRate(v, true);
+                else if (customRateInput.value === '') setTaxRate(19, false);
+            });
+
+            // زر التقريب
+            roundToggleBtn.addEventListener('click', () => {
+                useRounding = !useRounding;
+                roundToggleBtn.classList.toggle('opacity-50', !useRounding);
+                recalculateAll();
+            });
+
+            // السجل واللغات وأزرار النافذة
+            document.getElementById('saveHistoryBtn').addEventListener('click', saveToHistory);
+            historyToggleBtn.addEventListener('click', () => historyDrawer.classList.toggle('hidden'));
+            closeHistoryBtn.addEventListener('click', () => historyDrawer.classList.add('hidden'));
+            document.getElementById('clearHistoryBtn').addEventListener('click', () => {
+                historyList = [];
+                localStorage.removeItem('win_tva_history');
+                renderHistory();
+                showToast(i18n[currentLang].toastCleared);
+            });
+
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', () => applyLanguage(btn.dataset.lang));
+            });
+
+            document.getElementById('winCloseBtn').addEventListener('click', clearAll);
+            document.getElementById('winMinBtn').addEventListener('click', () => showToast(i18n[currentLang].toastWinDemo));
+            document.getElementById('winMaxBtn').addEventListener('click', () => showToast(i18n[currentLang].toastWinDemo));
+
+            // --- دعم لوحة المفاتيح الفيزيائية (Physical Keyboard Support) ---
+            document.addEventListener('keydown', (e) => {
+                if (document.activeElement === customRateInput) return;
+
+                if (e.key >= '0' && e.key <= '9') {
+                    e.preventDefault();
+                    inputDigit(e.key);
+                } else if (e.key === '.' || e.key === ',') {
+                    e.preventDefault();
+                    inputDigit('.');
+                } else if (['+', '-', '*', '/'].includes(e.key)) {
+                    e.preventDefault();
+                    handleOperator(e.key);
+                } else if (e.key === '=') {
+                    e.preventDefault();
+                    evaluatePendingOperation();
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (pendingOp !== null) evaluatePendingOperation();
+                    else saveToHistory();
+                } else if (e.key === 'Backspace') {
+                    e.preventDefault();
+                    handleBackspace();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    if (!historyDrawer.classList.contains('hidden')) {
+                        historyDrawer.classList.add('hidden');
+                    } else {
+                        clearAll();
+                    }
+                } else if (e.key === 'ArrowDown' || e.key === 'Tab') {
+                    e.preventDefault();
+                    const order = ['HT', 'TVA', 'TTC'];
+                    const next = order[(order.indexOf(activeField) + 1) % 3];
+                    setActiveField(next);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const order = ['HT', 'TVA', 'TTC'];
+                    const prev = order[(order.indexOf(activeField) + 2) % 3];
+                    setActiveField(prev);
+                }
+            });
+
+            // التهيئة الأولية
+            initTheme();
+            applyLanguage(currentLang);
+            loadHistory();
+            recalculateAll();
+        });
+    </script>
+    <script>
+        if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+        }
+    </script>
+</body>
+</html>

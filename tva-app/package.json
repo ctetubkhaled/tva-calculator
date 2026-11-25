@@ -1,0 +1,35 @@
+{
+  "name": "tva-calculator",
+  "version": "1.0.0",
+  "description": "حاسبة الضريبة TVA - HT / TVA / TTC",
+  "main": "main.js",
+  "author": "TVA Calculator",
+  "scripts": {
+    "css": "tailwindcss -i input.css -o www/css/app.css --minify",
+    "start": "electron .",
+    "dist:win": "electron-builder --win nsis portable",
+    "dist:linux": "electron-builder --linux AppImage",
+    "dist:mac": "electron-builder --mac dmg",
+    "android:add": "cap add android && cap sync android",
+    "android:sync": "cap sync android"
+  },
+  "build": {
+    "appId": "com.tva.calculator",
+    "productName": "حاسبة TVA",
+    "files": ["main.js", "www/**/*", "build/icon.png"],
+    "directories": { "output": "dist" },
+    "win": { "icon": "build/icon.png" },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true },
+    "linux": { "icon": "build/icon.png", "category": "Office" }
+  },
+  "devDependencies": {
+    "@capacitor/android": "^6.1.2",
+    "@capacitor/cli": "^6.1.2",
+    "@capacitor/core": "^6.1.2",
+    "@fontsource/cairo": "^5.0.0",
+    "@fontsource/inter": "^5.0.0",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "tailwindcss": "^3.4.0"
+  }
+}

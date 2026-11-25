@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+        /* تخصيص شريط التمرير بأسلوب ويندوز 11 */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(136, 136, 136, 0.35);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(136, 136, 136, 0.6);
+        }
+
+        /* إزالة أسهم الأرقام الافتراضية */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        /* أرقام من اليسار لليمين دائماً */
+        .num-ltr {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            direction: ltr;
+            unicode-bidi: isolate;
+        }
+
+        /* تأثيرات أزرار حاسبة ويندوز Fluent */
+        .win-key {
+            transition: background-color 0.08s ease, transform 0.05s ease, border-color 0.1s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .win-key:active {
+            transform: scale(0.97);
+        }
+
+        /* تأثير الظهور الناعم */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slide-up {
+            animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    
