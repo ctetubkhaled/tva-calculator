@@ -1,0 +1,46 @@
+name: Build APK + Windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - run: npm install
+      - run: npx cap add android
+      - run: npx cap sync android
+      - run: pip install --break-system-packages pillow
+      - name: Generate launcher icons
+        run: |
+          for d in mipmap-mdpi:48 mipmap-hdpi:72 mipmap-xhdpi:96 mipmap-xxhdpi:144 mipmap-xxxhdpi:192; do
+            dir=${d%%:*}; size=${d##*:}
+            python3 -c "from PIL import Image; im=Image.open('build/icon.png').resize(($size,$size)); [im.save(f'android/app/src/main/res/$dir/{n}.png') for n in ('ic_launcher','ic_launcher_round','ic_launcher_foreground')]"
+          done
+          rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher*.xml
+      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TVA-android-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install
+      - run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TVA-windows
+          path: |
+            dist/*.exe
