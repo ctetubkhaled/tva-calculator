@@ -5,6 +5,10 @@ on:
   push:
     branches: [main, master]
 
+defaults:
+  run:
+    working-directory: tva-app
+
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -29,7 +33,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: TVA-android-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: tva-app/android/app/build/outputs/apk/debug/app-debug.apk
 
   windows:
     runs-on: windows-latest
@@ -42,5 +46,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: TVA-windows
-          path: |
-            dist/*.exe
+          path: tva-app/dist/*.exe
